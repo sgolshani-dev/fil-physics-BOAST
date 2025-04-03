@@ -297,10 +297,10 @@ for n = 1:length(rois)
    sd = Roi_std(n, I);
    fprintf('ROI Nr.: %2d; BS-opt: %6.3f; BS-SD: %6.3f; BS-ref: %6.3f; BS-gain: %6.3f; PE: %1d; PP: %4.1f; tilt: %4d;\n', ...
             n, v, sd, Roi_mean(n, ct0), ((v/Roi_mean(n, ct0))-1)*100, PE_all(I), PP_all(I), tilt_all(I));
-   result.results(n, 1) = I;                       result.results(n, 2) = v; 
-   result.results(n, 3) = Roi_std(n,I);            result.results(n, 4) = Roi_mean(n, ct0); 
-   result.results(n, 5) = PP_all(I);               result.results(n, 6) = tilt_all(I);
-   result.results(n, 7) = PE_all(I);
+   result.results(n, 1) = I;                  result.results(n, 2) = v; 
+   result.results(n, 3) = Roi_std(n,I);       result.results(n, 4) = Roi_mean(n, ct0); 
+   result.results(n, 5) = PP_all(I);          result.results(n, 6) = tilt_all(I);
+   result.results(n, 7) = PE_all(I);          result.results(n, 8) = ((v/Roi_mean(n, ct0))-1)*100;
    
    % Optimum BS
    epi_param_opt.GP = [0 0 PP_all(I)]*10^-6;
