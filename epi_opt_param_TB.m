@@ -126,7 +126,7 @@ R2s = R2sOpt.(R2sfield);
 
 if isnumeric(R2s)
     scanner_param.R2s = R2s*10^3;
-    fprintf('loading R2s value: %0.2f (s^-1) \n', R2s);
+    fprintf('loading R2s value: %0.2f (s^-1) \n', R2s*10^3);
 else
     vol_R2s = spm_vol(char(R2s));
     R2sMap = spm_read_vols(vol_R2s);
