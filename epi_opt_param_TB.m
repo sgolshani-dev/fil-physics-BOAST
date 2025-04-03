@@ -206,14 +206,11 @@ FG.direction = vol_fm_dX.mat(1:3,1:3);
 % BS for Standard EPI Protocol (no tilt, no compensation, Positive Prewinder (AP))
 % This just for producing a valid BSgain mask
 % -------------------------------------------------------------------------
-default_epi_param = SetDefaultEPIParam; 
-default_scanner_param = SetDefaultScannerParam;
-
 epi_param_opt.GP = [0 0 0]*10^-6;              
 epi_param_opt.tilt = 0;                   
 epi_param_opt.PE_dir = -1;             
 
-BS_0 = CalculateBS_TB(FG, epi_param_opt, default_epi_param, default_scanner_param);
+BS_baseline = CalculateBS_TB(FG, epi_param_opt, epi_param_fix, scanner_param);
 
 % -------------------------------------------------------------------------
 % Exploring the Parameter Space
@@ -255,14 +252,9 @@ for PE_val = 1:length(PE_range)
             % -------------------------------------------------------------
             % Excluding out of range values
             % -------------------------------------------------------------
-            if strcmp(R2sfield, 'ROI_Averaged')
-                nR2s = length(rois);
-            else
-                nR2s = 1;
-            end
-            BS_gain = ((BS_tmp./(repmat(BS_0, 1, 1, 1, nR2s)+eps))-1)*100;
+            BS_gain = ((BS_tmp./(BS_baseline + eps))-1)*100;
             BSGainMask = (BS_gain > -200) & (BS_gain < 200);
-            BrainAndGainMask_tmp = (repmat(Brainmask_tmpl, 1, 1, 1, nR2s) > 0.99).*BSGainMask;
+            BrainAndGainMask_tmp = (Brainmask_tmpl > 0.99).*BSGainMask;
 
             % -------------------------------------------------------------
             % Evaluating ROIS
@@ -339,7 +331,7 @@ fprintf('------------------------------------------------------------------\n');
 % Saving the result
 % -------------------------------------------------------------------------
 matname = fullfile(out_dir, 'BSOpt.mat');
-save(matname, 'result', 'BS_Optimum', 'BS_0');
+save(matname, 'result', 'BS_Optimum', 'BS_baseline');
 
 % -------------------------------------------------------------------------
 % Display the result
