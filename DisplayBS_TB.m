@@ -50,7 +50,7 @@ hold off;
 title('BOLD Sensitivity of Optimum');
 
 subplot(2, 3, [2 3])
-bar(result.results(:, 3)); ylim([0 maxBS])
+bar(result.results(:, 8)); ylim([0 maxBS])
 title('Relative BOLD Sensitivity Gain of Optimum')
 
 subplot(2, 3, 4)
