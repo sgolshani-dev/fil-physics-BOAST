@@ -106,7 +106,7 @@ pe_ov.num     = [1 1];
 slicethickness         = cfg_entry;
 slicethickness.tag     = 'slicethickness';
 slicethickness.name    = 'Slice thickness';
-slicethickness.val     = {2};
+slicethickness.val     = {3};
 slicethickness.help    = {'Slice Thickness or (if known) the Full Width at ' ...
                           'Half Maximum (FWHM) of the slice excitation profile in mm'};
 slicethickness.strtype = 'r';
