@@ -3,7 +3,7 @@ function DisplayBS_TB(result, tilt_range, zshim_range, rois)
 nROIs = length(rois); 
 
 BS_matrix = result.BS_matrix;
-BS_baseline = result.results(1:nROIs, 7);
+BS_baseline = result.results(1:nROIs, 4);
 
 %==========================================================================
 % We assume only 15% drop in wellshimmed areas is acceptable (BS = 1)
@@ -54,7 +54,7 @@ bar(result.results(:, 3)); ylim([0 maxBS])
 title('Relative BOLD Sensitivity Gain of Optimum')
 
 subplot(2, 3, 4)
-bar(result.results(:, 4));
+bar(result.results(:, 7));
 title('PE Polarity')
 
 subplot(2, 3, 5)
