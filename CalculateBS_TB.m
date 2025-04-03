@@ -123,7 +123,7 @@ I = exp((-(2*pi*gam)^2*delta_z^2/16/log(2)).*((GPrep_SS + fGS.*TE).^2));
 % =========================================================================
 % BOLD Sensitivity
 % =========================================================================
-if isfield(scanner_param, 'R2sfield')
+if isfield(scanner_param, 'R2sOpt')
     n_R2s = scanner_param.nR2s;
     for n = 1:n_R2s
         BS(:,:,:,n) = (I./Q.^2).*exp(-(TC.*scanner_param.R2s(n)).*((1./Q)-1));
