@@ -27,7 +27,7 @@ try TA = epi_param_fix.TA;       catch,   TA = default_epi_params.TA;           
 try TA_FS = epi_param_fix.TA_FS; catch,   TA_FS = default_epi_params.TA_FS;     end
 try vx_epi = epi_param_fix.vx_epi; catch, vx_epi = default_epi_params.vox;      end
 try delta_z = epi_param_fix.delta_z; ...
-catch, delta_z = default_epi_params.delta_z;   end
+catch, delta_z = default_epi_params.slicethickness;   end
 try echo_spacing = epi_param_fix.echo_spacing; ...      
 catch, echo_spacing = default_epi_params.echo_spacing;     end
 try main_orientation = epi_param_fix.main_orientation;     
