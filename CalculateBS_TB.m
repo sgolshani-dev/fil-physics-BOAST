@@ -3,8 +3,6 @@ function BS = CalculateBS_TB(FG, epi_param_opt, epi_param_fix, scanner_param)
 % ========================================================================
 % This function calculates BOLD sensitivity using field map gradients and 
 % a defined set of parameters.
-%% calculate BOLD sensitivity from gradient fieldmap
-%% based on calc_BS_fm_atlas (NW)    % Not sure what this atlas is
 % Copyright (C) 2014-2018 Steffen Volz
 % Wellcome Trust Centre for Neuroimaging, London
 % and Max Planck Institute for Human Cognitive and Brain Sciences, Leipzig 
@@ -19,19 +17,19 @@ function BS = CalculateBS_TB(FG, epi_param_opt, epi_param_fix, scanner_param)
 gam = 42.58e6;                     % gyromagnetic ratio for protons in Hz/T
 
 default_epi_params = SetDefaultEPIParam;
-try fov = epi_param_fix.fov;     catch,   fov = default_epi_params.fov;         end
-try AcF = epi_param_fix.AccF;    catch,   AcF = default_epi_params.AccF;        end
-try PF = epi_param_fix.PF;       catch,   PF = default_epi_params.PF;           end
-try TC = epi_param_fix.TC;       catch,   TC = default_epi_params.echotime;     end
-try TA = epi_param_fix.TA;       catch,   TA = default_epi_params.TA;           end
-try TA_FS = epi_param_fix.TA_FS; catch,   TA_FS = default_epi_params.TA_FS;     end
-try vx_epi = epi_param_fix.vx_epi; catch, vx_epi = default_epi_params.vox;      end
-try delta_z = epi_param_fix.delta_z; ...
-catch, delta_z = default_epi_params.slicethickness;   end
-try echo_spacing = epi_param_fix.echo_spacing; ...      
-catch, echo_spacing = default_epi_params.echo_spacing;     end
-try main_orientation = epi_param_fix.main_orientation;     
-catch,   main_orientation = default_epi_params.main_orientation;      end
+try fov = default_epi_params.fov;     catch,   fov = epi_param_fix.fov;         end
+try AcF = default_epi_params.AccF;    catch,   AcF = epi_param_fix.AccF;        end
+try PF = default_epi_params.PF;       catch,   PF = epi_param_fix.PF;           end
+try TC = default_epi_params.TC;       catch,   TC = epi_param_fix.echotime;     end
+try TA = default_epi_params.TA;       catch,   TA = epi_param_fix.TA;           end
+try TA_FS = default_epi_params.TA_FS; catch,   TA_FS = epi_param_fix.TA_FS;     end
+try vx_epi = default_epi_params.vx_epi; catch, vx_epi = epi_param_fix.vox;      end
+try delta_z = default_epi_params.delta_z; ...
+catch, delta_z = epi_param_fix.slicethickness;   end
+try echo_spacing = default_epi_params.echo_spacing; ...      
+catch, echo_spacing = epi_param_fix.echo_spacing;     end
+try main_orientation = default_epi_params.main_orientation;     
+catch,   main_orientation = epi_param_fix.main_orientation;      end
 
 % Field gradients
 fm_dX = FG.DX;
