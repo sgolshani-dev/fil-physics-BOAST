@@ -253,9 +253,14 @@ for PE_val = 1:length(PE_range)
             % -------------------------------------------------------------
             % Excluding out of range values
             % -------------------------------------------------------------
-            BS_gain = ((BS_tmp./(BS_baseline + eps))-1)*100;
+           if strcmp(R2sfield, 'ROI_Averaged')
+                nR2s = length(rois);
+            else
+                nR2s = 1;
+            end
+            BS_gain = ((BS_tmp./(repmat(BS_baseline, 1, 1, 1, nR2s)+eps))-1)*100;
             BSGainMask = (BS_gain > -200) & (BS_gain < 200);
-            BrainAndGainMask_tmp = (Brainmask_tmpl > 0.99).*BSGainMask;
+            BrainAndGainMask_tmp = (repmat(Brainmask_tmpl, 1, 1, 1, nR2s) > 0.99).*BSGainMask;
 
             % -------------------------------------------------------------
             % Evaluating ROIS
