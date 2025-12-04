@@ -314,7 +314,7 @@ Out_suf.strtype = 's';
 other         = cfg_branch;
 other.tag     = 'other';
 other.name    = 'Other Settings';
-other.val     = {rfs R2sOpt FieldGradOpt Out_suf};
+other.val     = {rfs R2sOpt Out_suf};
 other.help    = {'Other Settings Used for Optimization'};
 
 % =========================================================================
