@@ -1,13 +1,14 @@
 function result = epi_opt_param_TB(fieldmaps, rois, template, main_orientation, ...
                      fov, base_res, pe_ov, delta_z, echo_spacing, TC, vx_epi, AF, ...
-                     PF, tilt, shimz, TEvar, rfs, R2sOpt, suffix)
+                     PF, tilt, shimz, TEvar, rfs, R2sOpt, FieldGradOpt, suffix)
 
 % =========================================================================
-% Copyright (C)          2015-2018   Steffen Volz
+% Copyright (C)            2015-2018          Steffen Volz
 % Wellcome Trust Centre for Neuroimaging, London
-% and Max Planck Institute for Human Cognitive and Brain Sciences, Leipzig 
+% and Max Planck Institute for Human Cognitive and Brain Sciences, Leipzig
 %
-% Updated and refactored   2024      Shokoufeh Golshani
+% Updated and refactored   2024 - 2025        Shokoufeh Golshani
+% Functional Imaging Laboratory, Imaging Neuroscience, UCL
 % =========================================================================
 
 % ========================================================================= 
@@ -54,6 +55,10 @@ end
 spm_progress_bar('Init', 10, 'preparing ...', 'steps');
 spm_progress_bar('Set', 0);
 
+for n = 1:length(fieldmaps)
+    sprintf('Using fieldmap(s) = %s;',fieldmaps{n});
+end
+
 if (length(fieldmaps) == 3)
    fprintf('loading gradientmaps ...\n');
 
@@ -67,12 +72,12 @@ if (length(fieldmaps) == 3)
    fm_dZ = resize(rescale_gradient.*spm_read_vols(vol_fm_dZ), rfs);
 
 elseif (length(fieldmaps) == 1)
-   fprintf('loading fieldmap and calculating gradientmaps ...\n');
+   fprintf('loading fieldmaps and calculating gradientmaps ...\n');
 
    spm_progress_bar('Set', 1);
    vol_fm_dX = spm_vol(fieldmaps{1});
 
-   [fm_dX, fm_dY, fm_dZ] = CalculateGradientmaps_TB(fieldmaps{1}, 'Circshift_Diff');
+   [fm_dX, fm_dY, fm_dZ] = CalculateGradientmaps_TB(fieldmaps{1}, FieldGradOpt);
    fprintf('resizing gradientmaps ...\n');
    
    fm_dX = resize(fm_dX, rfs);
@@ -120,13 +125,12 @@ R2sfield = fieldNames{1};
 
 R2s = R2sOpt.(R2sfield);
 
+fprintf('loading R2s value/map\n');
 if isnumeric(R2s)
-    scanner_param.R2s = R2s*10^3;
-    fprintf('loading R2s value: %0.2f (s^-1) \n', R2s*10^3);
+    scanner_param.R2s = R2s*10^3;    
 else
     vol_R2s = spm_vol(char(R2s));
     R2sMap = spm_read_vols(vol_R2s);
-    fprintf('loading R2s map: %s\n', char(R2s));
     scanner_param.R2s = R2sMap.*10^3;
 end
 
@@ -145,10 +149,15 @@ for n = 1:length(rois)
     GSroi = fm_dZ(squeeze(ROI_slct(:,:,:,n))>0);
     GSroi_sd = std(GSroi)*1e6;
     GSroi = mean(GSroi)*1e6;
+    
+    GSroi_TE = GSroi*epi_param_fix.echotime;
 
     GProi = fm_dY(squeeze(ROI_slct(:,:,:,n))>0);
     GProi_sd = std(GProi)*1e6;
     GProi = mean(GProi)*1e6;
+    
+    fprintf(['Mean slice gradient moment in the roi: %0.3f (mT/m*ms). ' ...
+             'Adjust shimz moment accordingly. \n'], GSroi_TE);
 
     plus_minus_char = char(177);
     fprintf('Mean Phase/Slice gradient in the roi: %0.3f %c %0.3f - %0.3f %c %0.3f (uT/m).\n',...
@@ -157,7 +166,7 @@ for n = 1:length(rois)
     if strcmp(R2sfield, 'ROI_Averaged') || strcmp(R2sfield, 'Voxel_wise')
         R2sMapROI = R2sMap.*squeeze(ROI_slct(:,:,:,n));
         R2sroi(n) = mean(nonzeros(R2sMapROI))*10^3;   
-        fprintf('ROI averaged R2s value in roi %d = %0.2f (s^-1) \n', n, R2sroi(n));
+        fprintf('Averaged R2s value in ROI Nr. %d:  %0.2f (s^-1) \n', n, R2sroi(n));
     end
 end
 
@@ -198,6 +207,7 @@ else
     TE_range = TEvar.Fixed_TE(1);
 end
 
+
 % =========================================================================
 % Phase Encoding direction (based on the prewinder gradient moment)
 % (-1 = Positive Prewinder, +1 = Negative Prewinder)
@@ -220,7 +230,7 @@ epi_param_opt.GP = [0 0 0]*10^-6;
 epi_param_opt.tilt = 0;                   
 epi_param_opt.PE_dir = -1;             
 
-[~,~,BS_baseline] = CalculateBS_TB(FG, epi_param_opt, epi_param_fix, scanner_param, ROI_slct);
+[~,~,BS_baseline] = CalculateBS_TB(FG, epi_param_opt, epi_param_fix, scanner_param);
 
 % -------------------------------------------------------------------------
 % Exploring the Parameter Space
@@ -261,7 +271,7 @@ for TE_val = 1:length(TE_range)
 
                 epi_param_fix.echotime = TE_range(TE_val)*10^-3;
     
-                [~, sII, BS_tmp, fGP, fGS, shift_mask, localTE, Q, Isl] = CalculateBS_TB(FG, epi_param_opt, epi_param_fix, scanner_param, ROI_slct);
+                [~, ~, BS_tmp, fGP, fGS, shift_mask, localTE, Q, Isl] = CalculateBS_TB(FG, epi_param_opt, epi_param_fix, scanner_param);
           
                 % -------------------------------------------------------------
                 % Excluding out of range values
@@ -271,14 +281,13 @@ for TE_val = 1:length(TE_range)
                 else
                     nR2s = 1;
                 end
-                BS_gain_tmp = ((BS_tmp./(repmat(BS_baseline, 1, 1, 1, nR2s) + eps)) -1)*100;
-                
+                BS_gain_tmp = ((BS_tmp./(repmat(BS_baseline, 1, 1, 1, nR2s)+eps)) - 1)*100;
                 BSGainMask = ones(size(BS_gain_tmp)); 
-                % (BS_gain_tmp > -100) & (BS_gain_tmp < 200);
-                % This is for excluding too large values --> zeros the
-                % voxels that were zero in the baseline due to the shift mask!
-                % --> would it matter? at the end, we are interesting in the ROI
-
+                % BSGainMask = (BS_gain_tmp > -100) & (BS_gain_tmp < 200);  (BS_gain_tmp > -200) & (BS_gain_tmp < 200);
+                % This is for excluding too large values --> the first constraint does nothing (excluding negative BS which never happens!)
+                % The second constraint basically zeros the voxels that were zero in the baseline due to the shift mask!
+                % --> would it matter? at the end, we are interesting in the ROI --> BS_gain_roi
+                
                 BrainAndGainMask_tmp = (repmat(Brainmask_tmpl, 1, 1, 1, nR2s) > 0.99).*BSGainMask;
     
                 % -------------------------------------------------------------
@@ -294,20 +303,20 @@ for TE_val = 1:length(TE_range)
                         BS               = BS_tmp;
                         BS_gain          = BS_gain_tmp;
                     end
-                       
+     
                     Gain = BS_gain .* BrainAndGainMask;
                     
                     % Finding voxel indices corresponding to the ROI
                     Ind_ToOpt = find((BrainAndGainMask.*squeeze(ROI_slct(:,:,:,n))) > 0);   
                     
                     % Number of voxels with complete signal dropout
-                    Dropout_Vox = find(shift_mask(Ind_ToOpt)==0);  
-                    Percnt_Dropout_Vox(n, ct) = length(Dropout_Vox)/length(find(squeeze(ROI_slct(:,:,:,n)) > 0)); 
+                    Dropout_Vox = find(shift_mask(Ind_ToOpt) == 0);     
+                    Percnt_Dropout_Vox(n, ct) = length(Dropout_Vox)/length(find(squeeze(ROI_slct(:,:,:,n)) > 0));
                     
                     Roi_Sel_val = BS(Ind_ToOpt);
                     Roi_Sel_gain = Gain(Ind_ToOpt);
                     BS_gain_roi = (BS(Ind_ToOpt) - BS_baseline(Ind_ToOpt))./BS_baseline(Ind_ToOpt);
-    
+        
                     % ------------------------------------------------------------
                     % Theoretical BOLD Sensitivity in the ROI
                     Roi_mean(n, ct) = mean(Roi_Sel_val(:));
@@ -317,42 +326,40 @@ for TE_val = 1:length(TE_range)
                     [Roi_Sel_val_rmoutlr, TFrm, TFoutlier, L, U, C] = rmoutliers(Roi_Sel_val, "gesd");
                     Roi_mean_rmoulr(n, ct) = mean(Roi_Sel_val_rmoutlr(:));
                 
-                    % Introducing a new metric: penalising the mean with
-                    % standard deviation
+                    % Introducing a new metric: penalising the mean with standard deviation
                     lambda = 0.01;
-                    Roi_mean_std(n, ct) = Roi_mean(n, ct) - lambda*Roi_std(n, ct);
-     
+                    Roi_mean_std(n, ct) = Roi_mean(n, ct) - lambda*Roi_std(n, ct);   
                     % ------------------------------------------------------------
                     % Gain in the ROI
-                    Roi_gain_mean(n, ct)   = mean(Roi_Sel_gain(:));
+                    Roi_gain_mean(n, ct) = mean(Roi_Sel_gain(:));
                     Roi_BSgain_mean(n, ct) = mean(BS_gain_roi(:));
-                    
+        
                     % Susceptibility gradient in the phase direction in the ROI
                     GSP = fGP(Ind_ToOpt);
                     Roi_GSP_mean(n, ct) = mean(GSP(:));
-                    Roi_GSP_sd(n, ct)   = std(GSP(:));
-        
+                    Roi_GSP_sd(n, ct) = std(GSP(:));
+    
                     % Susceptibility gradient in the slice direction in the ROI
                     GSS = fGS(Ind_ToOpt);
                     Roi_GSS_mean(n, ct) = mean(GSS(:));
-                    Roi_GSS_sd(n, ct)   = std(GSS(:));
-    
+                    Roi_GSS_sd(n, ct) = std(GSS(:));
+
                     % Q factor in the ROI
                     Q_f = Q(Ind_ToOpt);
                     Roi_Q_mean(n, ct) = mean(Q_f(:));
-                    Roi_Q_sd(n, ct)   = std(Q_f(:));
+                    Roi_Q_sd(n, ct) = std(Q_f(:));
 
                     % signal loss due to susceptibility in the slice direction
                     Isl_f = Isl(Ind_ToOpt);
                     Roi_Isl_mean(n, ct) = mean(Isl_f(:));
-                    Roi_Isl_sd(n, ct)   = std(Isl_f(:));
+                    Roi_Isl_sd(n, ct) = std(Isl_f(:));
 
                     % local TE in the ROI
                     local_TE = localTE(Ind_ToOpt);
                     Roi_localTE_mean(n, ct) = mean(local_TE(:));
-                    Roi_localTE_sd(n, ct)   = std(local_TE(:));
+                    Roi_localTE_sd(n, ct) = std(local_TE(:));
 
-                    %%----------------------------
+                    %%-----------------------------------------------------
                     result{TE_val}.Q_matrix(PE_val, tilt_val, PP_val, n)         = Roi_Q_mean(n, ct);
                     result{TE_val}.Isl_matrix(PE_val, tilt_val, PP_val, n)       = Roi_Isl_mean(n, ct);
                     result{TE_val}.localTE_matrix(PE_val, tilt_val, PP_val, n)   = Roi_localTE_mean(n, ct);
@@ -361,18 +368,22 @@ for TE_val = 1:length(TE_range)
                     result{TE_val}.localTE_SDmatrix(PE_val, tilt_val, PP_val, n) = Roi_localTE_sd(n, ct);
                     result{TE_val}.GSP_SDmatrix(PE_val, tilt_val, PP_val, n)     = Roi_GSP_sd(n, ct);
                     result{TE_val}.GSS_SDmatrix(PE_val, tilt_val, PP_val, n)     = Roi_GSS_sd(n, ct);
-                    %%----------------------------
+                    %%-----------------------------------------------------
                     result{TE_val}.BS_matrix(PE_val, tilt_val, PP_val, n)        = Roi_mean(n, ct);
                     result{TE_val}.BS_SDmatrix(PE_val, tilt_val, PP_val, n)      = Roi_std(n, ct);
                     result{TE_val}.GSP_matrix(PE_val, tilt_val, PP_val, n)       = Roi_GSP_mean(n, ct);
                     result{TE_val}.GSS_matrix(PE_val, tilt_val, PP_val, n)       = Roi_GSS_mean(n, ct);
                     result{TE_val}.Gain_matrix(PE_val, tilt_val, PP_val, n)      = Roi_gain_mean(n, ct);
                     result{TE_val}.BSgain_matrix(PE_val, tilt_val, PP_val, n)    = Roi_BSgain_mean(n, ct);
-                   
+                    %%-----------------------------------------------------
+         
                 end
             end
         end
     end
+% end
+
+% spm_progress_bar('Clear');
 
 fprintf('------------------------------------------------------------------\n');
 fprintf('BS Optimization done for\n');
@@ -381,21 +392,48 @@ for n = 1:length(rois)
     display(sprintf('ROI Nr. %2d: %s;', n, rois{n}));
 end
 
-fprintf(' in TE = %d \n', TE_val);
+fprintf(' \n');
 fprintf('Optimal parameters:\n');
 
 
 for n = 1:length(rois)
-   maxVal = max(Roi_mean(n,:));
-   Ind = find(Roi_mean(n,:) == maxVal);
-   I = Ind(1);
-   sd = Roi_std(n, I);
-   fprintf('ROI Nr.: %2d; BS-opt: %0.3e; BS-SD: %0.3e; BS-baseline: %0.3e; BS-gain: %6.3f; PE: %1d; PP: %4.1f; tilt: %4d;\n', ...
-                      n,  maxVal,        sd,           Roi_mean(n, ct0), ((maxVal/Roi_mean(n, ct0))-1)*100, PE_all(I), PP_all(I), tilt_all(I));
-   result{TE_val}.results(n, 1) = I;                  result{TE_val}.results(n, 2) = maxVal; 
-   result{TE_val}.results(n, 3) = Roi_std(n, I);      result{TE_val}.results(n, 4) = Roi_mean(n, ct0); 
-   result{TE_val}.results(n, 5) = PP_all(I);          result{TE_val}.results(n, 6) = tilt_all(I);
-   result{TE_val}.results(n, 7) = PE_all(I);          result{TE_val}.results(n, 8) = ((maxVal/Roi_mean(n, ct0))-1)*100;
+    % Get valid candidates where dropout condition is satisfied
+    validIdx = find(Percnt_Dropout_Vox(n,:) * 100 < 0.01);
+    if isempty(validIdx)
+        fprintf('No valid candidates for ROI Nr. = %d\n', n);
+        continue;
+    end
+    % Which metric you want to maximise
+    % maxVal = max(Roi_mean(n,:));
+    % maxVal = max(Roi_mean_rmoulr(n,:));
+    % maxVal = max(Roi_mean_std(n,:));
+    % Ind = find(Roi_mean(n,:) == maxVal);
+    % Idx = Ind(1);
+    
+    [maxVal, relInd] = max(Roi_mean(n, validIdx));
+    Idx = validIdx(relInd);     % Actual index in original array
+        
+    sd = Roi_std(n, Idx);
+
+    fprintf('ROI Nr.: %2d; BS-opt: %0.3e; BS-SD: %0.3e; BS-baseline: %0.3e; BS-gain: %6.3f; PE: %1d; PP: %4.1f; tilt: %4d;\n', ...
+                      n, maxVal, sd, Roi_mean(n, ct0), ((maxVal/Roi_mean(n, ct0))-1)*100, PE_all(Idx), PP_all(Idx), tilt_all(Idx));
+    result{TE_val}.results(n, 1) = Idx;                  result{TE_val}.results(n, 2) = maxVal; 
+    result{TE_val}.results(n, 3) = Roi_std(n, Idx);      result{TE_val}.results(n, 4) = Roi_mean(n, ct0); 
+    result{TE_val}.results(n, 5) = PP_all(Idx);          result{TE_val}.results(n, 6) = tilt_all(Idx);
+    result{TE_val}.results(n, 7) = PE_all(Idx);          result{TE_val}.results(n, 8) = ((maxVal/Roi_mean(n, ct0))-1)*100;
+
+   % % Optimum BS
+   % epi_param_opt.GP = [0 0 PP_all(I)]*10^-6;
+   % epi_param_opt.tilt = tilt_all(I);
+   % epi_param_opt.PE_dir = PE_all(I);
+   % 
+   % if strcmp(R2sfield, 'ROI_Averaged')
+   %     scanner_param = [];
+   %     scanner_param.R2s = R2sroi(n);
+   % end
+   % 
+   % [~, ~, BS] = CalculateBS_TB(FG, epi_param_opt, epi_param_fix, scanner_param);
+   % BS_Optimum{n} = BS;
 
 end
 end
@@ -415,12 +453,13 @@ fprintf('------------------------------------------------------------------\n');
 % Saving the result
 % -------------------------------------------------------------------------
 matname = fullfile(out_dir, 'BSOpt.mat');
+% save(matname, 'result', 'BS_Optimum', 'BS_baseline', 'sII');
 save(matname, 'result', 'BS_baseline', 'Percnt_Dropout_Vox');
 
-% -------------------------------------------------------------------------
-% Display the result
-% -------------------------------------------------------------------------
-DisplayBS_TB(result, tilt_range, PP_range, rois)
+% % -------------------------------------------------------------------------
+% % Display the result
+% % -------------------------------------------------------------------------
+% DisplayBS_TB(result, tilt_range, PP_range, rois)
 
 result = 1;
 

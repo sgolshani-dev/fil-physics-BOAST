@@ -1,17 +1,18 @@
-function [relative_sBS, sII, sBS, fGP, fGS, shift_mask, TE, Q, Isl] = CalculateBS_TB(FG, epi_param_opt, epi_param_fix, scanner_param, ROI) 
+function [relative_sBS, sII, sBS, fGP, fGS, shift_mask, TE, Q, Isl] = CalculateBS_TB(FG, epi_param_opt, epi_param_fix, scanner_param) 
 
-% ========================================================================
+% =========================================================================
 % This function calculates BOLD sensitivity using field map gradients and 
 % a defined set of parameters including the ROI-specific R2s value if
 % provided.
 %
-% Copyright (C)          2014-2018      Steffen Volz
+% Copyright (C)                2014 - 2018        Steffen Volz
 % Wellcome Trust Centre for Neuroimaging, London
 % and Max Planck Institute for Human Cognitive and Brain Sciences, Leipzig
 %
-% Updated and refactored 2024           Shokoufeh Golshani
-% ========================================================================
+% Updated and refactored       2024 - 2025        Shokoufeh Golshani
+% =========================================================================
 
+% =========================================================================
 % Unpack Input Variables
 % =========================================================================
 gam = 42.58e6;                     % gyromagnetic ratio for protons in Hz/T
@@ -122,22 +123,23 @@ shift_mask = shift_mask.*(abs(fGR.*TE + GPrep_RO) < (1/2/gam/vx_epi(1)));
 % =========================================================================
 % Contribution of the through-plane field gradient --- Gaussian RF pulse
 % =========================================================================
-Isl = exp(-(((2*pi*gam)^2*delta_z^2/16/log(2)).*((GPrep_SS + fGS.*TE).^2)));
-ROI_slct = ROI;
+rel_Isl = exp(-(((2*pi*gam)^2*delta_z^2/16/log(2)).*((GPrep_SS + fGS.*TE).^2)));
+Isl = sqrt(pi*delta_z^2/4/log(2)) .* exp(-(((2*pi*gam)^2*delta_z^2/16/log(2)).*((GPrep_SS + fGS.*TE).^2)));
+
 % =========================================================================
 % Simulated Image Intensity and BOLD Sensitivity
 % =========================================================================
 if isfield(scanner_param, 'R2sOpt')
     n_R2s = scanner_param.nR2s;
     for n = 1:n_R2s
-        relative_sBS(:,:,:,n) = (Isl./Q.^2).*exp(-(TC.*scanner_param.R2s(n)).*((1./Q)-1));
+        relative_sBS(:,:,:,n) = (rel_Isl./Q.^2).*exp(-(TC.*scanner_param.R2s(n)).*((1./Q)-1));
         sII(:,:,:,n) = (1./Q).*Isl.*exp(-(TC.*scanner_param.R2s(n)./Q));
         sBS(:,:,:,n) = (TC./Q) .* sII(:,:,:,n);
 
     end
 else
     n_R2s = 1;
-    relative_sBS = (Isl./Q.^2).*exp(-(TC.*scanner_param.R2s).*((1./Q)-1));
+    relative_sBS = (rel_Isl./Q.^2).*exp(-(TC.*scanner_param.R2s).*((1./Q)-1));
     sII = (1./Q).*Isl.*exp(-(TC.*scanner_param.R2s./Q));
     sBS = (TC./Q) .* sII;
 end

@@ -296,35 +296,36 @@ R2sOpt.help    = {['How to inoporate R2* in the optimization; The options are:' 
                   '2. Global value in 7T (1/30 ms^-1)' ...
                   '3. Voxel-wise Map (ms^-1)' ...
                   '4. ROI-specific Averaged Value']};
-% -------------------------------------------------------------------------
-% Additional Inputs for Field Gradient Calculation Method
-% -------------------------------------------------------------------------
-Simple_Diff         = cfg_entry;
-Simple_Diff.tag     = 'Simple_Diff';
-Simple_Diff.name    = 'Simple voxel-wise difference method'; 
-Simple_Diff.num     = [1 1];
-% -------------------------------------------------------------------------
-% Additional Inputs for Field Gradient Calculation Method
-% -------------------------------------------------------------------------
-Circshift_Diff         = cfg_entry;
-Circshift_Diff.tag     = 'Circshift_Diff';
-Circshift_Diff.name    = 'Circshift difference method';
-Circshift_Diff.num     = [1 1];
-% -------------------------------------------------------------------------
-% Additional Inputs for Field Gradient Calculation Method
-% -------------------------------------------------------------------------
-Central_Diff         = cfg_entry;
-Central_Diff.tag     = 'Central_Diff';
-Central_Diff.name    = 'Central difference method'; 
-Central_Diff.num     = [1 1];
+% % -------------------------------------------------------------------------
+% % Additional Inputs for Field Gradient Calculation Method
+% % -------------------------------------------------------------------------
+% Simple_Diff         = cfg_entry;
+% Simple_Diff.tag     = 'Simple_Diff';
+% Simple_Diff.name    = 'Simple voxel-wise difference method'; 
+% Simple_Diff.num     = [1 1];
+% % -------------------------------------------------------------------------
+% % Additional Inputs for Field Gradient Calculation Method
+% % -------------------------------------------------------------------------
+% Circshift_Diff         = cfg_entry;
+% Circshift_Diff.tag     = 'Circshift_Diff';
+% Circshift_Diff.name    = 'Circshift difference method';
+% Circshift_Diff.num     = [1 1];
+% % -------------------------------------------------------------------------
+% % Additional Inputs for Field Gradient Calculation Method
+% % -------------------------------------------------------------------------
+% Central_Diff         = cfg_entry;
+% Central_Diff.tag     = 'Central_Diff';
+% Central_Diff.name    = 'Central difference method'; 
+% Central_Diff.num     = [1 1];
 % -------------------------------------------------------------------------
 % Field Gradient Calculation Method
 % -------------------------------------------------------------------------
-FieldGradOpt        = cfg_choice;
+FieldGradOpt        = cfg_menu;
 FieldGradOpt.tag    = 'FieldGradOpt';
-FieldGradOpt.name   = 'Field Gradient Calculation Option';
-FieldGradOpt.values = {Simple_Diff Circshift_Diff Central_Diff};
-FieldGradOpt.val    = {Circshift_Diff};
+FieldGradOpt.name   = 'Choose Field Gradient Calculation Option';
+FieldGradOpt.labels = {'Simple_Diff' 'Circshift_Diff' 'Central_Diff'};
+FieldGradOpt.values = {'Simple_Diff' 'Circshift_Diff' 'Central_Diff'};
+FieldGradOpt.val    = {'Circshift_Diff'};
 FieldGradOpt.help   = {['Field Gradient Calculation Method; Note methods differ' ...
                        'in the brain boundaries; The options are:' ...
                        '1. Simple voxel-wise difference – computes the gradient ' ...
