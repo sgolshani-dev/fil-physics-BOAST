@@ -6,13 +6,12 @@ function fmpoptbs = tbx_cfg_BOAST_Updated
 % This toolbox was originally developed by Steffen Volz and later updated, 
 % and refactored with new features by Shokoufeh Golshani.
 %
-% Copyright (C) 2015–2018 
-%   Steffen Volz
-%   Wellcome Trust Centre for Neuroimaging, London
-%   Max Planck Institute for Human Cognitive and Brain Sciences, Leipzig
+% Copyright (C)                   2015 – 2018          Steffen Volz
+% Wellcome Trust Centre for Neuroimaging, London
+% Max Planck Institute for Human Cognitive and Brain Sciences, Leipzig
 %
-% Updated 23/09/2024
-% Shokoufeh Golshani
+% Refactored and Updated          2024 - 2025          Shokoufeh Golshani
+% Functional Imaging Laboratory, Imaging Neuroscience, UCL
 % =========================================================================
 
 % Adding the toolbox folder
