@@ -16,25 +16,26 @@ function fmpoptbs = tbx_cfg_BOAST_Updated
 % =========================================================================
 
 % Adding the toolbox folder
-if ~isdeployed
-    addpath(fullfile(spm('Dir'),'toolbox','BOAST_Updated')); 
-end
+% if ~isdeployed
+%     addpath(fullfile(spm('Dir'),'toolbox','BOAST_Updated')); 
+% end
+% rmpath('C:\Users\sgolshani\Documents\MATLAB\spm12\spm12\toolbox\FmpOptBS');
 
 %==========================================================================
 % Input Values
 %==========================================================================
 
 % -------------------------------------------------------------------------
-% field map
+% field maps
 % -------------------------------------------------------------------------
-fieldmap         = cfg_files;
-fieldmap.tag     = 'fieldmap';
-fieldmap.name    = 'Input fieldmap';
-fieldmap.help    = {['Include One fieldmap (in Hz) or 3 fieldmap gradient (dX dY dZ) files ' ...
-                      'for optimizing BOLD sensitivity. Note that field ' ...
-                      'derivatives should be in T/m.']};
-fieldmap.ufilter = '.*';
-fieldmap.num     = [1 Inf];
+fieldmaps         = cfg_files;
+fieldmaps.tag     = 'fieldmaps';
+fieldmaps.name    = 'Input fieldmaps';
+fieldmaps.help    = {['Include one fieldmap or 3 fieldmap gradient (dX dY dZ) files ' ...
+                      'for optimizing BOLD sensitivity. Note that the units for the ' ...
+                      'field map should be in Hz and for the derivatives should be in T/m.']};
+fieldmaps.ufilter = '.*';
+fieldmaps.num     = [1 Inf];
 % -------------------------------------------------------------------------
 % template
 % -------------------------------------------------------------------------
@@ -59,7 +60,7 @@ rois.num     = [1 Inf];
 inputfiles         = cfg_branch;
 inputfiles.tag     = 'inputfiles';
 inputfiles.name    = 'Input files';
-inputfiles.val     = {fieldmap template rois};
+inputfiles.val     = {fieldmaps template rois};
 inputfiles.help    = {'Needed Input Files'};
 % -------------------------------------------------------------------------
 % menu main orientation
@@ -139,7 +140,7 @@ vox         = cfg_entry;
 vox.tag     = 'vox';
 vox.name    = 'Voxel size';
 vox.val     = {[3 3 3]};
-vox.help    = {'Voxel Size [read, phase, slice] in mm'}; 
+vox.help    = {'Voxel Size [read, phase, slice] in mm'}; % Note the order of input!
 vox.strtype = 'r';
 vox.num     = [1 3];
 % -------------------------------------------------------------------------
@@ -221,11 +222,9 @@ TEOpt.tag     = 'TEOpt';
 TEOpt.name    = 'TE Option';
 TEOpt.values  = {Fixed_TE Variable_TE};
 TEOpt.val     = {Fixed_TE};
-TEOpt.help    = {'Do you want to inoporate TE variations in the optimization; ' ...
-                  'The options are:' ...
+TEOpt.help    = {['Inoporate TE variations in the optimization; The options are:' ...
                   '1. Fixed TE (the same as echotime in the Reference Sequence)' ...
-                  '2. Variable TE (ms)' ...
-                  };
+                  '2. Variable TE']};
 % -------------------------------------------------------------------------
 % Simulation Parameters
 % -------------------------------------------------------------------------
@@ -293,12 +292,48 @@ R2sOpt.tag     = 'R2sOpt';
 R2sOpt.name    = 'R2star Option';
 R2sOpt.values  = {Global_3T Global_7T Voxel_wise ROI_Averaged};
 R2sOpt.val     = {Global_3T};
-R2sOpt.help    = {'How to inoporate R2* in the optimization; The options are:' ...
+R2sOpt.help    = {['How to inoporate R2* in the optimization; The options are:' ...
                   '1. Global Value in 3T (1/45 ms^-1)' ...
                   '2. Global value in 7T (1/30 ms^-1)' ...
                   '3. Voxel-wise Map (ms^-1)' ...
-                  '4. ROI-specific Averaged Value'
-                  };
+                  '4. ROI-specific Averaged Value']};
+% -------------------------------------------------------------------------
+% Additional Inputs for Field Gradient Calculation Method
+% -------------------------------------------------------------------------
+Simple_Diff         = cfg_entry;
+Simple_Diff.tag     = 'Simple_Diff';
+Simple_Diff.name    = 'Simple voxel-wise difference method'; 
+Simple_Diff.num     = [1 1];
+% -------------------------------------------------------------------------
+% Additional Inputs for Field Gradient Calculation Method
+% -------------------------------------------------------------------------
+Circshift_Diff         = cfg_entry;
+Circshift_Diff.tag     = 'Circshift_Diff';
+Circshift_Diff.name    = 'Circshift difference method';
+Circshift_Diff.num     = [1 1];
+% -------------------------------------------------------------------------
+% Additional Inputs for Field Gradient Calculation Method
+% -------------------------------------------------------------------------
+Central_Diff         = cfg_entry;
+Central_Diff.tag     = 'Central_Diff';
+Central_Diff.name    = 'Central difference method'; 
+Central_Diff.num     = [1 1];
+% -------------------------------------------------------------------------
+% Field Gradient Calculation Method
+% -------------------------------------------------------------------------
+FieldGradOpt        = cfg_choice;
+FieldGradOpt.tag    = 'FieldGradOpt';
+FieldGradOpt.name   = 'Field Gradient Calculation Option';
+FieldGradOpt.values = {Simple_Diff Circshift_Diff Central_Diff};
+FieldGradOpt.val    = {Circshift_Diff};
+FieldGradOpt.help   = {['Field Gradient Calculation Method; Note methods differ' ...
+                       'in the brain boundaries; The options are:' ...
+                       '1. Simple voxel-wise difference – computes the gradient ' ...
+                       'by taking the direct difference between neighbouring voxels.'...
+                       '2. Circshift difference – computes the gradient ' ...
+                       'by differenciating the image shifted one voxel to the right with the unshifted image.'...
+                       '3. Central difference – computes the gradient by comparing the image shifted one voxel ' ...
+                       'to the right with the image shifted one voxel to the left.']};
 % -------------------------------------------------------------------------
 % Saving Output
 % -------------------------------------------------------------------------
@@ -314,7 +349,7 @@ Out_suf.strtype = 's';
 other         = cfg_branch;
 other.tag     = 'other';
 other.name    = 'Other Settings';
-other.val     = {rfs R2sOpt Out_suf};
+other.val     = {rfs R2sOpt FieldGradOpt Out_suf};
 other.help    = {'Other Settings Used for Optimization'};
 
 % =========================================================================
@@ -322,7 +357,7 @@ other.help    = {'Other Settings Used for Optimization'};
 % =========================================================================
 fmpoptbs         = cfg_exbranch;
 fmpoptbs.tag     = 'BOAST_Updated';
-fmpoptbs.name    = 'BS Updated';
+fmpoptbs.name    = 'BSopt Updated';
 fmpoptbs.val     = {inputfiles fixedparameters simu other};
 fmpoptbs.help    = {'This toolbox is currently only work in progress.'};
 fmpoptbs.prog = @BOAST_Updated_apply;
@@ -342,8 +377,11 @@ opt.results = epi_opt_param_TB(job.inputfiles.fieldmaps, job.inputfiles.rois, ..
                                job.fixedparameters.vox, ...
                                job.fixedparameters.AccF, job.fixedparameters.PF, ...
                                job.simu.tilt, job.simu.shimz, job.simu.TEOpt, ...
-                               job.other.rfs, job.other.R2sOpt, job.other.FieldGradOpt, job.other.Out_suf);
+                               job.other.rfs, job.other.R2sOpt, ...
+                               job.other.FieldGradOpt, job.other.Out_suf);
 
 % =========================================================================
 function dep = vout_BOAST_Updated_apply(~)
+% do something
 dep = cfg_dep;
+
